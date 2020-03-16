@@ -1,5 +1,6 @@
 import socket
 import sys
+import re
 
 #
 # TCP Echo Client Template Source:
@@ -68,6 +69,31 @@ def exitProg():
   sys.exit()
 
 
+# send a message to the server
+# u : username
+# t : tweet
+def send(sock, message_type, server_message):
+  server_request = bytes(message_type + server_message, "utf-8")
+
+  try:
+    # Send data
+    print('sending {!r}'.format(server_request))
+    sock.sendall(server_request)
+
+    # Look for the response
+    amount_received = 0
+    amount_expected = len(server_request)
+
+    while amount_received < amount_expected:
+      data = sock.recv(16)
+      amount_received += len(data)
+      print('received {!r}'.format(data))
+
+  finally:
+    print('upload successful')
+    print('closing socket')
+    sock.close()
+
 def error(message):
   print("\n" + message + ".\n")
   sys.exit()
@@ -83,8 +109,8 @@ except: error("error: server port invalid, connection refused.")
 if (not 1 <= server_port <= 65535):
   error("error: server port invalid, connection refused.")
 
-server_username = sys.argv[3]
-if not re.match("^[A-Za-z0-9]*$", server_username):
+client_username = sys.argv[3]
+if not re.match("^[A-Za-z0-9]*$", client_username):
   error("error: username has wrong format, connection refused.")
 
 
@@ -96,6 +122,9 @@ server_address = (server_ip, server_port)
 #print('connecting to {} port {}'.format(*server_address))
 try: sock.connect(server_address)
 except: error("Argument Error: No server found with this <ServerIP> and <ServerPort>")
+
+# Send the username of the client trying to log onto the service to the server
+send(sock, 'u', client_username)
 
 # Wait for user commands
 user_input = input()
