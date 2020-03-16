@@ -36,6 +36,9 @@ sock.listen(1)
 
 server_message = "Empty Message"
 
+# List of users
+users = []
+
 while True:
     # Wait for a connection
     print('waiting for a connection')
@@ -63,18 +66,28 @@ while True:
         else: error("Request Error: Invalid request")
         
         # Upload
+        # if (server_mode == 'u'):
+        #   new_server_message = server_request[1:]
+        #   if (len(new_server_message) > 0):
+        #     server_message = new_server_message
+        #   else:
+        #     server_message = "Empty Message"
+        #   print('\nmessage: ' + server_message + '\n')
+
+        # New User
         if (server_mode == 'u'):
-          new_server_message = server_request[1:]
-          if (len(new_server_message) > 0):
-            server_message = new_server_message
-          else:
-            server_message = "Empty Message"
+          username = server_request[1:]
+          if (username not in users):
+            users.append(username)
+            print("user " + username + " logged on to server")
+          else: server_message = "error: username already in use"
+
         # Download
         elif (server_mode == 'd'):
           print('sending message to the client')
           connection.sendall(bytes(server_message, "utf-8"))
         else:
           error("Request Error: Invalid Request")
-        
         print('\nmessage: ' + server_message + '\n')
+        
         connection.close()
