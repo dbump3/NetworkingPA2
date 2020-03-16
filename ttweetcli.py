@@ -1,5 +1,6 @@
 import socket
 import sys
+import re
 
 #
 # TCP Echo Client Template Source:
@@ -11,23 +12,19 @@ def error(message):
   sys.exit()
 
 # Argument parsing
-if (len(sys.argv) < 4):
-  error("Argument Error: Arguments must be of the form ttweetcli -u <ServerIP> <ServerPort> \“message\" or ttweetcli –d <ServerIP> <ServerPort>")
-server_mode = sys.argv[1]
-if ((not (server_mode == "-u" or server_mode == "-d")) or (server_mode == "-u" and not (len(sys.argv) == 5 or len(sys.argv) == 4)) or (server_mode == "-d" and not len(sys.argv) == 4)):
-  error("Argument Error: Arguments must be of the form ttweetcli -u <ServerIP> <ServerPort> \“message\" or ttweetcli –d <ServerIP> <ServerPort>")
-server_message = ""
-if (server_mode == "-u"):
-  try: server_message = sys.argv[4]
-  except: server_message = ""
-  if (len(server_message) > 150):
-    error("Argument Error: \"message\" must be 150 characters or less in length")
-server_ip = sys.argv[2]
-try: server_port = int(sys.argv[3])
-except: error("Type Error: <ServerPort> must be of the type int")
-if (not 1 <= server_port <= 65535):
-  error("Argument Error: <ServerPort> must be between 1 and 65535")
+if (len(sys.argv) != 4):
+  error("error: args should contain <ServerIP> <ServerPort> <Username>")
 
+server_ip = sys.argv[1]
+
+try: server_port = int(sys.argv[2])
+except: error("error: server port invalid, connection refused.")
+if (not 1 <= server_port <= 65535):
+  error("error: server port invalid, connection refused.")
+
+server_username = sys.argv[3]
+if not re.match("^[A-Za-z0-9]*$", server_username):
+  error("error: username has wrong format, connection refused.")
 
 # Create a TCP/IP socket
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
