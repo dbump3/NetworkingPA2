@@ -9,15 +9,17 @@ import re
 
 
 def tweet(input):
-  # Check if message is less than 150 characters
-  server_message = ""
-  try:
-    hashtag_start = input.find("#")
-    message_start = input.find("\"")
-    message_end = input.find("\"", message_start + 1, hashtag_start)
-    server_message = input[message_start + 1:message_end]
-  except:
-    server_message = ""
+  # Check hashtag validity
+  hashtag_start = input.find("#")
+  hashtags = input[hashtag_start:].split("#")
+  for hashtag in hashtags:
+    if not hashtag.isalnum() or hashtag == "#":
+      error("hashtag illegal format, connection refused.")
+
+  # Check message validity
+  message_start = input.find("\"")
+  message_end = input.find("\"", message_start + 1, hashtag_start)
+  server_message = input[message_start + 1:message_end]
   if (server_message is None or len(server_message) == 0):
     error("message format illegal.")
   elif (len(server_message) > 150):
@@ -42,39 +44,11 @@ def tweet(input):
   finally:
     print('upload successful')
     print('closing socket')
-    sock.close()
 
 
 def subscribe(input):
-  print()
-
-
-def unsubscribe(input):
-  print()
-
-
-def timeline():
-  print()
-
-
-def getusers():
-  print()
-
-
-def gettweets(input):
-  print()
-
-
-def exitProg():
-  sys.exit()
-
-
-# send a message to the server
-# u : username
-# t : tweet
-def send(sock, message_type, server_message):
-  server_request = bytes(message_type + server_message, "utf-8")
-
+  # server_request = s<username> <hashtag> <client_socket>
+  server_request = bytes('s' + server_username + ' ' + input.split()[1] + ' ' + sock, "utf-8")
   try:
     # Send data
     print('sending {!r}'.format(server_request))
@@ -90,9 +64,28 @@ def send(sock, message_type, server_message):
       print('received {!r}'.format(data))
 
   finally:
-    print('upload successful')
-    print('closing socket')
-    sock.close()
+    print("operation success")
+
+
+def unsubscribe(input):
+  print("operation success")
+
+
+def timeline():
+  print()
+
+
+def getusers():
+  print()
+
+
+def gettweets(input):
+  print()
+
+
+def exitProg():
+  print("bye bye")
+
 
 def error(message):
   print("\n" + message + ".\n")
@@ -109,8 +102,8 @@ except: error("error: server port invalid, connection refused.")
 if (not 1 <= server_port <= 65535):
   error("error: server port invalid, connection refused.")
 
-client_username = sys.argv[3]
-if not re.match("^[A-Za-z0-9]*$", client_username):
+server_username = sys.argv[3]
+if not re.match("^[A-Za-z0-9]*$", server_username):
   error("error: username has wrong format, connection refused.")
 
 
@@ -123,18 +116,15 @@ server_address = (server_ip, server_port)
 try: sock.connect(server_address)
 except: error("Argument Error: No server found with this <ServerIP> and <ServerPort>")
 
-# Send the username of the client trying to log onto the service to the server
-send(sock, 'u', client_username)
-
 # Wait for user commands
 user_input = input()
 command = user_input.split()[0]
 if command == "tweet":
   tweet(user_input)
 elif command == "subscribe":
-  subscribe(user_input)
+  subscribe(user_input.split()[1])
 elif command == "unsubscribe":
-  unsubscribe(user_input)
+  unsubscribe(user_input.split()[1])
 elif command == "timeline":
   timeline()
 elif command == "getusers":

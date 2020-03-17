@@ -68,7 +68,7 @@ while True:
 
     finally:
         # Clean up the connection
-        if (len(server_request) > 0): server_mode = server_request[0]
+        if len(server_request) > 0: server_mode = server_request[0]
         else: error("Request Error: Invalid request")
         
         # Upload
@@ -81,15 +81,33 @@ while True:
         #   print('\nmessage: ' + server_message + '\n')
 
         # New User
-        if (server_mode == 'u'):
+        if server_mode == 'u':
           username = server_request[1:]
-          if (username not in users):
+          if username not in users.keys():
             users[username] = 0
             print("user " + username + " logged on to server")
           else: server_message = "error: username already in use"
 
+        # Subscribe to hashtag
+        # server_request = s<username> <hashtag> <client_socket>
+        elif server_mode == 's':
+          username = server_request.split()[0][1:]
+          hashtag = server_request.split()[1]
+          client_socket = server_request.split()[2]
+          if users[username] >= 3:
+            error("operation failed: sub " + hashtag + " failed, already exists or exceeds 3 limitation")
+          else:
+            users[username] += 1
+            if hashtag == "#ALL":
+              for ht in sockets:
+                if client_socket not in ht:
+                  ht.append(client_socket)
+            else:
+              if client_socket not in sockets[hashtag]:
+                sockets[hashtag].append(client_socket)
+
         # Download
-        elif (server_mode == 'd'):
+        elif server_mode == 'd':
           print('sending message to the client')
           connection.sendall(bytes(server_message, "utf-8"))
         else:
