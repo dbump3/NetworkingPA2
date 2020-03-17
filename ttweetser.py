@@ -36,8 +36,14 @@ sock.listen(1)
 
 server_message = "Empty Message"
 
-# List of users
-users = []
+# Dictionary of user: number of hashtags (getusers, tweet)
+users = {}
+# Dictionary of hashtag: socket of subscribed users (subscribe, unsubscribe)
+sockets = {}
+# Dictionary of user: list of all tweets from the user (gettweets)
+posted_tweets = {}
+# Dictionary of user: list of all tweets the user received from the server (timeline)
+received_tweets = {}
 
 while True:
     # Wait for a connection
@@ -78,7 +84,7 @@ while True:
         if (server_mode == 'u'):
           username = server_request[1:]
           if (username not in users):
-            users.append(username)
+            users[username] = 0
             print("user " + username + " logged on to server")
           else: server_message = "error: username already in use"
 
