@@ -46,72 +46,90 @@ posted_tweets = {}
 received_tweets = {}
 
 while True:
-    # Wait for a connection
-    print('waiting for a connection')
-    connection, client_address = sock.accept()
+  # Wait for a connection
+  print('waiting for a connection')
+  connection, client_address = sock.accept()
 
-    try:
-        print('connection from', client_address)
+  try:
+    print('connection from', client_address)
 
-        # Receive the data in small chunks and retransmit it
-        server_request = ""
-        while True:
-            data = connection.recv(16)
-            server_request += '{!r}'.format(data)[2:-1]
-            print('received {!r}'.format(data))
-            if data:
-                print('sending data back to the client')
-                connection.sendall(data)
-            else:
-                print('no data from', client_address)
-                break
+    # Receive the data in small chunks and retransmit it
+    server_request = ""
+    while True:
+      data = connection.recv(16)
+      server_request += '{!r}'.format(data)[2:-1]
+      print('received {!r}'.format(data))
+      if data:
+        print('sending data back to the client')
+        connection.sendall(data)
+      else:
+        print('no data from', client_address)
+        break
 
-    finally:
-        # Clean up the connection
-        if len(server_request) > 0: server_mode = server_request[0]
-        else: error("Request Error: Invalid request")
-        
-        # Upload
-        # if (server_mode == 'u'):
-        #   new_server_message = server_request[1:]
-        #   if (len(new_server_message) > 0):
-        #     server_message = new_server_message
-        #   else:
-        #     server_message = "Empty Message"
-        #   print('\nmessage: ' + server_message + '\n')
+  finally:
+    # Clean up the connection
+    if len(server_request) > 0: server_mode = server_request[0]
+    else: error("Request Error: Invalid request")
 
-        # New User
-        if server_mode == 'u':
-          username = server_request[1:]
-          if username not in users.keys():
-            users[username] = 0
-            print("user " + username + " logged on to server")
-          else: server_message = "error: username already in use"
+    # Upload
+    # if (server_mode == 'u'):
+    #   new_server_message = server_request[1:]
+    #   if (len(new_server_message) > 0):
+    #     server_message = new_server_message
+    #   else:
+    #     server_message = "Empty Message"
+    #   print('\nmessage: ' + server_message + '\n')
 
-        # Subscribe to hashtag
-        # server_request = s<username> <hashtag> <client_socket>
-        elif server_mode == 's':
-          username = server_request.split()[0][1:]
-          hashtag = server_request.split()[1]
-          client_socket = server_request.split()[2]
-          if users[username] >= 3:
-            error("operation failed: sub " + hashtag + " failed, already exists or exceeds 3 limitation")
-          else:
-            users[username] += 1
-            if hashtag == "#ALL":
-              for ht in sockets:
-                if client_socket not in ht:
-                  ht.append(client_socket)
-            else:
-              if client_socket not in sockets[hashtag]:
-                sockets[hashtag].append(client_socket)
+    # New User
+    if server_mode == 'u':
+      username = server_request[1:]
+      if username not in users.keys():
+        users[username] = 0
+        print("user " + username + " logged on to server")
+      else: server_message = "error: username already in use"
 
-        # Download
-        elif server_mode == 'd':
-          print('sending message to the client')
-          connection.sendall(bytes(server_message, "utf-8"))
+    # Subscribe to hashtag
+    # server_request = s<username> <hashtag> <client_socket>
+    elif server_mode == 's':
+      username = server_request.split()[0][1:]
+      hashtag = server_request.split()[1]
+      client_socket = server_request.split()[2]
+      if users[username] >= 3:
+        error("operation failed: sub " + hashtag + " failed, already exists or exceeds 3 limitation")
+      else:
+        users[username] += 1
+        if hashtag == "#ALL":
+          for ht in sockets.keys():
+            if client_socket not in sockets[ht]:
+              sockets[ht].append(client_socket)
         else:
-          error("Request Error: Invalid Request")
-        print('\nmessage: ' + server_message + '\n')
-        
-        connection.close()
+          if hashtag not in sockets.keys():
+              sockets[hashtag] = [client_socket]
+          else:
+            if client_socket not in sockets[hashtag]:
+              sockets[hashtag].append(client_socket)
+
+    # Unsubscribe to hashtag
+    # server_request = n<username> <hashtag> <client_socket>
+    elif server_mode == 'n':
+      username = server_request.split()[0][1:]
+      hashtag = server_request.split()[1]
+      client_socket = server_request.split()[2]
+      users[username] -= 1
+      if hashtag == "#ALL":
+        for ht in sockets.keys():
+          if client_socket in sockets[ht]:
+            sockets[ht].remove(client_socket)
+      else:
+        if client_socket in sockets[hashtag]:
+          sockets[hashtag].remove(client_socket)
+
+    # Download
+    elif server_mode == 'd':
+      print('sending message to the client')
+      connection.sendall(bytes(server_message, "utf-8"))
+    else:
+      error("Request Error: Invalid Request")
+    print('\nmessage: ' + server_message + '\n')
+
+    connection.close()

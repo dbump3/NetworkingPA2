@@ -48,6 +48,7 @@ def tweet(input):
 
 def subscribe(input):
   # server_request = s<username> <hashtag> <client_socket>
+  # ******** ISSUE: how to pass socket (or pointer to socket) to server? ********
   server_request = bytes('s' + server_username + ' ' + input.split()[1] + ' ' + sock, "utf-8")
   try:
     # Send data
@@ -62,13 +63,29 @@ def subscribe(input):
       data = sock.recv(16)
       amount_received += len(data)
       print('received {!r}'.format(data))
-
   finally:
     print("operation success")
 
 
 def unsubscribe(input):
-  print("operation success")
+  # server_request = n<username> <hashtag> <client_socket>
+  # ******** ISSUE: how to pass socket (or pointer to socket) to server? ********
+  server_request = bytes('n' + server_username + ' ' + input.split()[1] + ' ' + sock, "utf-8")
+  try:
+    # Send data
+    print('sending {!r}'.format(server_request))
+    sock.sendall(server_request)
+
+    # Look for the response
+    amount_received = 0
+    amount_expected = len(server_request)
+
+    while amount_received < amount_expected:
+      data = sock.recv(16)
+      amount_received += len(data)
+      print('received {!r}'.format(data))
+  finally:
+    print("operation success")
 
 
 def timeline():
