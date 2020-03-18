@@ -93,12 +93,36 @@ def timeline():
 
 
 def getusers():
-  print()
+  server_request = bytes('g')
+  # Send data
+  print('sending {!r}'.format(server_request))
+  sock.sendall(server_request)
+
+  # Look for the response
+  amount_received = 0
+  amount_expected = len(server_request)
+
+  while amount_received < amount_expected:
+    data = sock.recv(16)
+    amount_received += len(data)
+    print('received {!r}'.format(data))
+
 
 
 def gettweets(input):
-  print()
+  server_request = bytes('t' + server_username)
+  # Send data
+  print('sending {!r}'.format(server_request))
+  sock.sendall(server_request)
 
+  # Look for the response
+  amount_received = 0
+  amount_expected = len(server_request)
+
+  while amount_received < amount_expected:
+    data = sock.recv(16)
+    amount_received += len(data)
+    print('received {!r}'.format(data))
 
 def exitProg():
   print("bye bye")

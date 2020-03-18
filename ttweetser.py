@@ -124,6 +124,21 @@ while True:
         if client_socket in sockets[hashtag]:
           sockets[hashtag].remove(client_socket)
 
+    # Get users
+    elif server_mode == 'g':
+      for user in users.keys():
+        print(user + "\n")
+
+    # Get tweets
+    # server_request = n<username>
+    elif server_mode == 't':
+      username = server_request.split()[0][1:]
+      if username not in posted_tweets.keys():
+        print("no user {} in the system".format(username))
+      else:
+        for tweet in posted_tweets[username]:
+          print(tweet + "\n")
+
     # Download
     elif server_mode == 'd':
       print('sending message to the client')
