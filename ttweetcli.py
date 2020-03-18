@@ -108,7 +108,6 @@ def getusers():
     print('received {!r}'.format(data))
 
 
-
 def gettweets(input):
   server_request = bytes('t' + server_username)
   # Send data
