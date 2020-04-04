@@ -1,15 +1,21 @@
 import socket
+import select
 import sys
+import queue
 import signal
 
 #
 # TCP Echo Server Template Source:
 # https://pymotw.com/3/socket/tcp.html
 #
+# Other references:
+# https://pymotw.com/2/select/
+#
 
 def error(message):
   print("\n" + message + ".\n")
   sys.exit()
+
 
 # Make Ctrl-C exit server
 signal.signal(signal.SIGINT, signal.SIG_DFL)
@@ -24,18 +30,26 @@ if (not 1 <= server_port <= 65535):
 
 
 # Create a TCP/IP socket
-sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 # Bind the socket to the port
 server_address = ("localhost", server_port)
 print('starting up on {} port {}'.format(*server_address))
-sock.bind(server_address)
+server.bind(server_address)
 
-# Listen for incoming connections
-sock.listen(1)
+# Listen for incoming connections (5 at once max)
+server.listen(5)
 
-server_message = "Empty Message"
 
+# Sockets from which we expect to read
+inputs = [server]
+# Sockets to which we expect to write
+outputs = []
+# Outgoing message queues (socket:Queue)
+message_queues = {}
+
+# Dictionary of client sockets: usernames
+clients = {}
 # Dictionary of user: number of hashtags (getusers, tweet)
 users = {}
 # Dictionary of hashtag: socket of subscribed users (subscribe, unsubscribe)
@@ -45,106 +59,108 @@ posted_tweets = {}
 # Dictionary of user: list of all tweets the user received from the server (timeline)
 received_tweets = {}
 
+
+####################
+# Main server loop #
+####################
 while True:
   # Wait for a connection
-  print('waiting for a connection')
-  connection, client_address = sock.accept()
+  print('waiting for the next event')
+  readable, writable, exceptional = select.select(inputs, outputs, inputs)
 
-  try:
-    print('connection from', client_address)
-
-    # Receive the data in small chunks and retransmit it
-    server_request = ""
-    while True:
-      data = connection.recv(16)
-      server_request += '{!r}'.format(data)[2:-1]
-      print('received {!r}'.format(data))
-      if data:
-        print('sending data back to the client')
-        connection.sendall(data)
-      else:
-        print('no data from', client_address)
-        break
-
-  finally:
-    # Clean up the connection
-    if len(server_request) > 0: server_mode = server_request[0]
-    else: error("Request Error: Invalid request")
-
-    # Upload
-    # if (server_mode == 'u'):
-    #   new_server_message = server_request[1:]
-    #   if (len(new_server_message) > 0):
-    #     server_message = new_server_message
-    #   else:
-    #     server_message = "Empty Message"
-    #   print('\nmessage: ' + server_message + '\n')
-
-    # New User
-    if server_mode == 'u':
-      username = server_request[1:]
-      if username not in users.keys():
-        users[username] = 0
-        print("user " + username + " logged on to server")
-      else: server_message = "error: username already in use"
-
-    # Subscribe to hashtag
-    # server_request = s<username> <hashtag> <client_socket>
-    elif server_mode == 's':
-      username = server_request.split()[0][1:]
-      hashtag = server_request.split()[1]
-      client_socket = server_request.split()[2]
-      if users[username] >= 3:
-        error("operation failed: sub " + hashtag + " failed, already exists or exceeds 3 limitation")
-      else:
-        users[username] += 1
-        if hashtag == "#ALL":
-          for ht in sockets.keys():
-            if client_socket not in sockets[ht]:
-              sockets[ht].append(client_socket)
-        else:
-          if hashtag not in sockets.keys():
-              sockets[hashtag] = [client_socket]
-          else:
-            if client_socket not in sockets[hashtag]:
-              sockets[hashtag].append(client_socket)
-
-    # Unsubscribe to hashtag
-    # server_request = n<username> <hashtag> <client_socket>
-    elif server_mode == 'n':
-      username = server_request.split()[0][1:]
-      hashtag = server_request.split()[1]
-      client_socket = server_request.split()[2]
-      users[username] -= 1
-      if hashtag == "#ALL":
-        for ht in sockets.keys():
-          if client_socket in sockets[ht]:
-            sockets[ht].remove(client_socket)
-      else:
-        if client_socket in sockets[hashtag]:
-          sockets[hashtag].remove(client_socket)
-
-    # Get users
-    elif server_mode == 'g':
-      for user in users.keys():
-        print(user + "\n")
-
-    # Get tweets
-    # server_request = n<username>
-    elif server_mode == 't':
-      username = server_request.split()[0][1:]
-      if username not in posted_tweets.keys():
-        print("no user {} in the system".format(username))
-      else:
-        for tweet in posted_tweets[username]:
-          print(tweet + "\n")
-
-    # Download
-    elif server_mode == 'd':
-      print('sending message to the client')
-      connection.sendall(bytes(server_message, "utf-8"))
+  # Handle inputs
+  for s in readable:
+    if s is server:
+      # A "readable" server socket is ready to accept a connection
+      connection, client_address = s.accept()
+      print('new connection from ' + str(client_address))
+      connection.setblocking(0)
+      inputs.append(connection)
+      # Give the connection a queue for data we want to send
+      message_queues[connection] = queue.Queue()
     else:
-      error("Request Error: Invalid Request")
-    print('\nmessage: ' + server_message + '\n')
+      data = (s.recv(1024)).decode('ascii')
+      if data:
+        # A readable client socket has data
+        print('received ' + data + ' from ' + str(s.getpeername()))
 
-    connection.close()
+        if data[:2] == 'su': # sendusername
+          username = data[2:]
+          if username in clients.values():
+            print('closing ' + str(client_address) + ' after reading no data')
+            # Stop listening for input on the connection
+            if s in outputs:
+              outputs.remove(s)
+            inputs.remove(s)
+            s.close()
+            # Remove message queue
+            del message_queues[s]
+            break
+          else:
+            message_queues[s].put('1')
+            clients[s] = username
+            print(str(client_address) + '->' + username + ' added to clients')
+
+        if data[:2] == 'tw': # tweet
+          print()
+
+        if data[:2] == 'sb': # subscribe
+          print()
+
+        if data[:2] == 'ub': # unsubscribe
+          print()
+
+        if data == 'ti': # timeline
+          print()
+
+        if data == 'gu': # getusers
+          message_queues[s].put(str(clients.values()))
+
+        if data == 'gt': # gettweets
+          print()
+
+            
+        # Add output channel for response
+        if s not in outputs:
+          outputs.append(s)
+
+        """
+        message_queues[s].put(data)
+        # Add output channel for response
+        if s not in outputs:
+            outputs.append(s)
+        """
+      else:
+        # Interpret empty result as closed connection
+        print('closing ' + str(client_address) + ' after reading no data')
+        # Stop listening for input on the connection
+        if s in outputs:
+          outputs.remove(s)
+        inputs.remove(s)
+        del clients[s]
+        s.close()
+        # Remove message queue
+        del message_queues[s]
+
+  # Handle outputs
+  for s in writable:
+    try:
+      next_msg = message_queues[s].get_nowait()
+    except queue.Empty:
+      # No messages waiting so stop checking for writability.
+      print('output queue for ' + str(s.getpeername()) + ' is empty')
+      outputs.remove(s)
+    else:
+      print('sending ' + next_msg + ' to ' + str(s.getpeername()))
+      s.send(next_msg.encode('ascii'))
+
+  # Handle "exceptional conditions"
+  for s in exceptional:
+    print('handling exceptional condition for ' + str(s.getpeername()))
+    # Stop listening for input on the connection
+    inputs.remove(s)
+    if s in outputs:
+      outputs.remove(s)
+    s.close()
+    # Remove message queue
+    del message_queues[s]
