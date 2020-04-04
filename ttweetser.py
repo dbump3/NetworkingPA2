@@ -33,7 +33,7 @@ if (not 1 <= server_port <= 65535):
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 # Bind the socket to the port
-server_address = ("localhost", server_port)
+server_address = ("127.0.0.1", server_port)
 print('starting up on {} port {}'.format(*server_address))
 server.bind(server_address)
 
@@ -100,9 +100,25 @@ while True:
             message_queues[s].put('1')
             clients[s] = username
             print(str(client_address) + '->' + username + ' added to clients')
+            if s not in outputs:
+              outputs.append(s)
 
         if data[:2] == 'tw': # tweet
-          print()
+          message = data[2:]
+          # Parse message + create outgoing tweet for timeline
+          tweet = message[message.find(']')+1:]
+          out_tweet = clients[s] + ': \"' + tweet + '\" '
+          hashtags = message[message.find('['):message.find(']')+1].strip('][').split(', ')
+          for i in range(len(hashtags)):
+            hashtags[i] = hashtags[i][1:-1]
+            out_tweet += '#' + hashtags[i]
+          # Send tweet to all users
+          for hashtag in hashtags:
+            if hashtag in sockets.keys(): # TODO make sure this works with subscriptions to hashtags
+              for user in sockets[hashtag]:
+                message_queues[user].put(out_tweet)
+                if user not in outputs:
+                  outputs.append(user)
 
         if data[:2] == 'sb': # subscribe
           print()
@@ -115,14 +131,12 @@ while True:
 
         if data == 'gu': # getusers
           message_queues[s].put(str(clients.values()))
+          if s not in outputs:
+            outputs.append(s)
 
         if data == 'gt': # gettweets
           print()
-
-            
-        # Add output channel for response
-        if s not in outputs:
-          outputs.append(s)
+        
 
         """
         message_queues[s].put(data)

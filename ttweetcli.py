@@ -1,4 +1,5 @@
 import socket
+import select
 import sys
 import re
 
@@ -8,12 +9,32 @@ import re
 #
 
 def error(message):
-  print("\n" + message + ".\n")
+  print("\n" + message + "\n")
   sys.exit()
 
 
 def tweet(input):
-  print()
+  # Check hashtag validity
+  hashtag_start = input.find("#")
+  hashtags = input[hashtag_start:].split("#")[1:]
+  if len(hashtags) > 5: error("hashtag illegal format, connection refused.")
+  for hashtag in hashtags:
+    if not hashtag.isalnum() or hashtag == "#":
+      error("hashtag illegal format, connection refused.")
+
+  # Check message validity
+  message_start = input.find("\"")
+  message_end = input.find("\"", message_start + 1, hashtag_start)
+  server_message = input[message_start + 1:message_end]
+  if (server_message is None or len(server_message) == 0):
+    error("message format illegal.")
+  elif (len(server_message) > 150):
+    error("message length illegal, connection refused.")
+
+  message = 'tw' + str(hashtags) + server_message
+
+  print('sending ' + message)
+  client.send(message.encode('ascii'))
 
 
 def subscribe(input):
@@ -24,8 +45,9 @@ def unsubscribe(input):
   print()
 
 
-def timeline():
-  print()
+def timeline(tweets):
+  for tweet in tweets:
+    print(tweet)
 
 
 def getusers():
@@ -35,7 +57,7 @@ def getusers():
   client.send(message.encode('ascii'))
 
   # Look for the response
-  data = (client.recv(1024)).decode('ascii')
+  data = client.recv(1024).decode('ascii')
   if not data:
     client.close()
   print('recieved ' + data)
@@ -84,10 +106,12 @@ message = 'su' + username
 print('sending ' + message)
 client.send(message.encode('ascii'))
 # If username taken, send close connection command
-if not (client.recv(1024)).decode('ascii') == '1':
+if not client.recv(1024).decode('ascii') == '1':
   client.close()
   error('username illegal, connection refused')
 
+# Dict to store timeline
+stored_tweets = []
 
 ####################
 # Main client loop #
@@ -96,6 +120,20 @@ while True:
 
   # Wait for user commands
   user_input = input()
+
+  client.setblocking(0)
+
+  readable, writable, exceptional = select.select([client], [], [], 1)
+
+  for s in readable:
+    if s is client:
+      message = client.recv(1024).decode('ascii')
+      stored_tweets.append(message)
+      print('\'' + message + '\' added to timeline')
+
+  client.setblocking(1)
+
+
   command = user_input.split()[0]
   if command == "tweet":
     tweet(user_input)
@@ -104,7 +142,7 @@ while True:
   elif command == "unsubscribe":
     unsubscribe(user_input.split()[1])
   elif command == "timeline":
-    timeline()
+    timeline(stored_tweets)
   elif command == "getusers":
     print('getting users')
     getusers()
@@ -115,4 +153,4 @@ while True:
   else:
     error("illegal command.")
 
-    
+  
