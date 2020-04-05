@@ -19,7 +19,7 @@ def tweet(input):
   hashtags = input[hashtag_start:].split("#")[1:]
   if len(hashtags) > 5: error("hashtag illegal format, connection refused.")
   for hashtag in hashtags:
-    if not hashtag.isalnum() or hashtag == "#":
+    if not hashtag.isalnum() or hashtag == "#" or hashtag == "ALL":
       error("hashtag illegal format, connection refused.")
 
   # Check message validity
