@@ -65,10 +65,40 @@ def getusers():
   if not data:
     client.close()
   print('recieved ' + data)
+  users = data[data.find('['):data.find(']')+1].strip('][').split(', ')
+  for i in range(len(users)):
+    print(users[i][1:-1])
 
 
 def gettweets(input):
-  print()
+  message = 'gt' + input
+  # Send data
+  print('sending ' + message)
+  client.send(message.encode('ascii'))
+
+  # Look for the response
+  data = client.recv(1024).decode('ascii')
+  if not data:
+    client.close()
+  print('recieved ' + data)
+
+  tweets = data[data.find('['):data.find(']')+1].strip('][').split(', ')
+  for i in range(len(tweets)):
+    print(tweets[i][1:-1])
+
+  if data == 'no':
+    print('no user ' + input + ' in the system')
+  elif data == 'nt':
+      print('no tweets have been posted by ' + input + ' yet')    
+  else:
+    pos = 0
+    while True:
+      new_pos = data.find('\ot', pos + 1)
+      if new_pos == -1:
+        print(data[pos+3:])
+        break
+      print(data[pos+3:new_pos])
+      pos = new_pos
 
 
 def exitProg():
@@ -157,10 +187,9 @@ while True:
   elif command == "timeline":
     timeline(stored_tweets)
   elif command == "getusers":
-    print('getting users')
     getusers()
   elif command == "gettweets":
-    gettweets(user_input)
+    gettweets(user_input.split()[1])
   elif command == "exit":
     exitProg()
   else:

@@ -50,7 +50,7 @@ outputs = []
 # Outgoing message queues (socket:Queue)
 message_queues = {}
 
-# Dictionary of client sockets: usernames
+# Dictionary of client socket: usernames
 clients = {}
 # Dictionary of client socket: number of hashtags (getusers, tweet, subscribe, unsubscribe)
 users = {}
@@ -115,6 +115,11 @@ while True:
           for i in range(len(hashtags)):
             hashtags[i] = hashtags[i][1:-1]
             out_tweet += '#' + hashtags[i]
+          # Add to posted tweets for that user
+          if s in posted_tweets.keys():
+            posted_tweets[s] += out_tweet
+          else:
+            posted_tweets[s] = out_tweet
           # Send tweet to all users
           users_sent = []
           for hashtag in hashtags:
@@ -167,24 +172,32 @@ while True:
               un.append(clients[sk])
             print("#{} has subscribers: {}".format(ht, un))
 
-        if data == 'ti': # timeline
-          print()
-
         if data == 'gu': # getusers
           message_queues[s].put(str(clients.values()))
           if s not in outputs:
             outputs.append(s)
 
-        if data == 'gt': # gettweets
-          print()
+        if data[:2] == 'gt': # gettweets
+          # Get socket from username
+          message = ''
+          username = data[2:]
+          try:
+            key = next(key for key, val in clients.items() if val == username)
+          except:
+            message += 'no'
+          if not message == 'no':
+            if key not in posted_tweets.keys():
+              message += 'nt'
+            # Send reply
+            else:
+              for val in posted_tweets[key]:
+                message += val
+            
+          message_queues[s].put(message)
+          if s not in outputs:
+            outputs.append(s)
         
 
-        """
-        message_queues[s].put(data)
-        # Add output channel for response
-        if s not in outputs:
-            outputs.append(s)
-        """
       else:
         # Interpret empty result as closed connection
         print('closing ' + str(client_address) + ' after reading no data')
@@ -193,6 +206,21 @@ while True:
           outputs.remove(s)
         inputs.remove(s)
         del clients[s]
+        if s in users.keys(): del users[s]
+        for key in sockets:
+          if s in sockets[key]:
+            new_vals = []
+            for val in key:
+              if not val == s:
+                new_vals.append(val)
+            del sockets[key]
+            for val in new_vals:
+              if key in sockets.keys():
+                sockets[key] += val
+              else:
+                sockets[key] = val
+        if s in posted_tweets.keys(): del users[s]
+        if s in received_tweets.keys(): del users[s]
         s.close()
         # Remove message queue
         del message_queues[s]
