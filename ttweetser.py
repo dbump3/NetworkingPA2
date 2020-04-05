@@ -207,7 +207,7 @@ while True:
         inputs.remove(s)
         del clients[s]
         if s in users.keys(): del users[s]
-        for key in sockets:
+        for key in sockets.keys():
           if s in sockets[key]:
             new_vals = []
             for val in key:
