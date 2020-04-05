@@ -37,12 +37,16 @@ def tweet(input):
   client.send(message.encode('ascii'))
 
 
-def subscribe(input):
-  print()
+def subscribe(hashtag):
+  message = 'sb' + str(hashtag)
+  print('sending ' + message)
+  client.send(message.encode('ascii'))
 
 
-def unsubscribe(input):
-  print()
+def unsubscribe(hashtag):
+  message = 'ub' + str(hashtag)
+  print('sending ' + message)
+  client.send(message.encode('ascii'))
 
 
 def timeline(tweets):
@@ -72,8 +76,6 @@ def exitProg():
   client.send(''.encode('ascii'))
   client.close()
   exit()
-
-
 
 
 # Argument parsing
@@ -152,5 +154,3 @@ while True:
     exitProg()
   else:
     error("illegal command.")
-
-  

@@ -21,11 +21,13 @@ def error(message):
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 
 # Argument parsing
-if (len(sys.argv) != 2):
+if len(sys.argv) != 2:
   error("Argument Error: Arguments must be of the form ttweetser <ServerPort>")
-try: server_port = int(sys.argv[1])
-except: error("Type Error: <ServerPort> must be of the type int")
-if (not 1 <= server_port <= 65535):
+try:
+  server_port = int(sys.argv[1])
+except:
+  error("Type Error: <ServerPort> must be of the type int")
+if not 1024 <= server_port <= 65535:
   error("Argument Error: <ServerPort> must be between 1 and 65535")
 
 
@@ -50,13 +52,13 @@ message_queues = {}
 
 # Dictionary of client sockets: usernames
 clients = {}
-# Dictionary of user: number of hashtags (getusers, tweet)
+# Dictionary of client socket: number of hashtags (getusers, tweet, subscribe, unsubscribe)
 users = {}
 # Dictionary of hashtag: socket of subscribed users (subscribe, unsubscribe)
 sockets = {}
-# Dictionary of user: list of all tweets from the user (gettweets)
+# Dictionary of client socket: list of all tweets from the user (gettweets)
 posted_tweets = {}
-# Dictionary of user: list of all tweets the user received from the server (timeline)
+# Dictionary of client socket: list of all tweets the user received from the server (timeline)
 received_tweets = {}
 
 
@@ -99,6 +101,7 @@ while True:
           else:
             message_queues[s].put('1')
             clients[s] = username
+            users[s] = 0
             print(str(client_address) + '->' + username + ' added to clients')
             if s not in outputs:
               outputs.append(s)
@@ -121,10 +124,45 @@ while True:
                   outputs.append(user)
 
         if data[:2] == 'sb': # subscribe
-          print()
+          hashtag = data[3:]
+          if users[s] >= 3:
+            print("operation failed: sub {} failed, already exists or exceeds 3 limitation".format(hashtag))
+          if hashtag == "ALL":
+            print("1")
+            for ht in sockets.keys():
+              if s not in sockets[ht]:
+                sockets[ht].append(s)
+          elif hashtag in sockets.keys() and s not in sockets[hashtag]:
+            print("2")
+            sockets[hashtag].append(s)
+          elif hashtag not in sockets.keys():
+            print("3")
+            sockets[hashtag] = [s]
+          else:
+            users[s] -= 1
+          users[s] += 1
+          print("list of hashtags")
+          for ht in sockets.keys():
+            un = []
+            for sk in sockets[ht]:
+              un.append(clients[sk])
+            print("#{} has subscribers: {}".format(ht, un))
 
         if data[:2] == 'ub': # unsubscribe
-          print()
+          hashtag = data[3:]
+          if hashtag == "ALL":
+            for ht in sockets.keys():
+              if s in sockets[ht]:
+                sockets[ht].remove(s)
+          elif hashtag in sockets.keys() and s in sockets[hashtag]:
+            sockets[hashtag].remove(s)
+            users[s] -= 1
+          print("list of hashtags")
+          for ht in sockets.keys():
+            un = []
+            for sk in sockets[ht]:
+              un.append(clients[sk])
+            print("#{} has subscribers: {}".format(ht, un))
 
         if data == 'ti': # timeline
           print()
