@@ -130,8 +130,19 @@ while True:
   for s in readable:
     if s is client:
       message = client.recv(1024).decode('ascii')
-      stored_tweets.append(message)
-      print('\'' + message + '\' added to timeline')
+      # Add messages to timeline
+      pos = 0
+      while True:
+          new_pos = message.find('\ot', pos + 1)
+          if new_pos == -1:
+              stored_tweets.append(message[pos+3:])
+              print('\'' + message[pos+3:] + '\' added to timeline')
+              break
+          stored_tweets.append(message[pos+3:new_pos])
+          print('\'' + message[pos+3:new_pos] + '\' added to timeline')
+          pos = new_pos
+          
+          
 
   client.setblocking(1)
 

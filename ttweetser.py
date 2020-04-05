@@ -110,18 +110,21 @@ while True:
           message = data[2:]
           # Parse message + create outgoing tweet for timeline
           tweet = message[message.find(']')+1:]
-          out_tweet = clients[s] + ': \"' + tweet + '\" '
+          out_tweet = '\ot' + clients[s] + ': \"' + tweet + '\" '
           hashtags = message[message.find('['):message.find(']')+1].strip('][').split(', ')
           for i in range(len(hashtags)):
             hashtags[i] = hashtags[i][1:-1]
             out_tweet += '#' + hashtags[i]
           # Send tweet to all users
+          users_sent = []
           for hashtag in hashtags:
             if hashtag in sockets.keys(): # TODO make sure this works with subscriptions to hashtags
               for user in sockets[hashtag]:
-                message_queues[user].put(out_tweet)
-                if user not in outputs:
-                  outputs.append(user)
+                if user not in users_sent:
+                  users_sent.append(user)
+                  message_queues[user].put(out_tweet)
+                  if user not in outputs:
+                    outputs.append(user)
 
         if data[:2] == 'sb': # subscribe
           hashtag = data[3:]
