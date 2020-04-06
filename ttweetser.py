@@ -136,15 +136,12 @@ while True:
           if users[s] >= 3:
             print("operation failed: sub {} failed, already exists or exceeds 3 limitation".format(hashtag))
           if hashtag == "ALL":
-            print("1")
             for ht in sockets.keys():
               if s not in sockets[ht]:
                 sockets[ht].append(s)
           elif hashtag in sockets.keys() and s not in sockets[hashtag]:
-            print("2")
             sockets[hashtag].append(s)
           elif hashtag not in sockets.keys():
-            print("3")
             sockets[hashtag] = [s]
           else:
             users[s] -= 1

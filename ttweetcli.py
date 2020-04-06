@@ -1,7 +1,6 @@
 import socket
 import select
 import sys
-import re
 
 #
 # TCP Echo Client Template Source:
@@ -109,18 +108,25 @@ def exitProg():
 
 
 # Argument parsing
-if (len(sys.argv) != 4):
+if len(sys.argv) != 4:
   error("error: args should contain <ServerIP> <ServerPort> <Username>")
 
 server_ip = sys.argv[1]
+ip = server_ip.split('.')
+if len(ip) != 4:
+  error("error: server ip invalid, connection refused.")
+for num in ip:
+  num = int(num)
+  if num < 0 or num > 255:
+    error("error: server ip invalid, connection refused.")
 
 try: server_port = int(sys.argv[2])
 except: error("error: server port invalid, connection refused.")
-if (not 1 <= server_port <= 65535):
+if not 1024 <= server_port <= 65535:
   error("error: server port invalid, connection refused.")
 
 username = sys.argv[3]
-if not re.match("^[A-Za-z0-9]*$", username):
+if not username.isalnum():
   error("error: username has wrong format, connection refused.")
 
 
@@ -131,16 +137,19 @@ client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_address = (server_ip, server_port)
 #print('connecting to {} port {}'.format(*server_address))
 try: client.connect(server_address)
-except: error("Argument Error: No server found with this <ServerIP> and <ServerPort>")
+except: error("connection error, please check your server: Connection refused")
 
 # Send username to ensure not taken
 message = 'su' + username
-print('sending ' + message)
+# print('sending ' + message)
 client.send(message.encode('ascii'))
 # If username taken, send close connection command
 if not client.recv(1024).decode('ascii') == '1':
   client.close()
-  error('username illegal, connection refused')
+  error("error: username has wrong format, connection refused.")
+
+# Connection successfully established
+print("username legal, connection established.")
 
 # Dict to store timeline
 stored_tweets = []
