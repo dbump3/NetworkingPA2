@@ -38,14 +38,30 @@ def tweet(input):
 
 def subscribe(hashtag):
   message = 'sb' + str(hashtag)
+  # Send data
   print('sending ' + message)
   client.send(message.encode('ascii'))
+  # Look for the response
+  response = client.recv(1024).decode('ascii')
+  if not response:
+    client.close()
+  print('recieved ' + response)
+  if response == "os":
+    print("operation success")
 
 
 def unsubscribe(hashtag):
   message = 'ub' + str(hashtag)
+  # Send data
   print('sending ' + message)
   client.send(message.encode('ascii'))
+  # Look for the response
+  response = client.recv(1024).decode('ascii')
+  if not response:
+    client.close()
+  print('recieved ' + response)
+  if response == "os":
+    print("operation success")
 
 
 def timeline(tweets):

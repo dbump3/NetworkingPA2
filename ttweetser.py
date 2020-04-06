@@ -133,6 +133,7 @@ while True:
 
         if data[:2] == 'sb': # subscribe
           hashtag = data[3:]
+          success = True
           if users[s] >= 3:
             print("operation failed: sub {} failed, already exists or exceeds 3 limitation".format(hashtag))
           if hashtag == "ALL":
@@ -144,8 +145,18 @@ while True:
           elif hashtag not in sockets.keys():
             sockets[hashtag] = [s]
           else:
-            users[s] -= 1
-          users[s] += 1
+            success = False
+
+          if success:
+            users[s] += 1
+            message_queues[s].put("os")
+            if s not in outputs:
+              outputs.append(s)
+          else:
+            message_queues[s].put("of")
+            if s not in outputs:
+              outputs.append(s)
+
           print("list of hashtags")
           for ht in sockets.keys():
             un = []
@@ -155,6 +166,7 @@ while True:
 
         if data[:2] == 'ub': # unsubscribe
           hashtag = data[3:]
+          success = True
           if hashtag == "ALL":
             for ht in sockets.keys():
               if s in sockets[ht]:
@@ -162,6 +174,19 @@ while True:
           elif hashtag in sockets.keys() and s in sockets[hashtag]:
             sockets[hashtag].remove(s)
             users[s] -= 1
+          else:
+            success = False
+
+          if success:
+            users[s] += 1
+            message_queues[s].put("os")
+            if s not in outputs:
+              outputs.append(s)
+          else:
+            message_queues[s].put("of")
+            if s not in outputs:
+              outputs.append(s)
+
           print("list of hashtags")
           for ht in sockets.keys():
             un = []
