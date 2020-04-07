@@ -14,7 +14,6 @@ import signal
 
 def error(message):
   print("\n" + message + ".\n")
-  sys.exit()
 
 
 # Make Ctrl-C exit server
@@ -41,7 +40,6 @@ server.bind(server_address)
 
 # Listen for incoming connections (5 at once max)
 server.listen(5)
-
 
 # Sockets from which we expect to read
 inputs = [server]
@@ -229,18 +227,18 @@ while True:
         inputs.remove(s)
         del clients[s]
         if s in users.keys(): del users[s]
-        for key in sockets.keys():
-          if s in sockets[key]:
+        for hashtag in sockets.keys():
+          if s in sockets[hashtag]:
             new_vals = []
-            for val in key:
+            for val in sockets[hashtag]:
               if not val == s:
                 new_vals.append(val)
-            del sockets[key]
+            del sockets[hashtag]
             for val in new_vals:
-              if key in sockets.keys():
-                sockets[key] += val
+              if hashtag in sockets.keys():
+                sockets[hashtag] += val
               else:
-                sockets[key] = val
+                sockets[hashtag] = val
         if s in posted_tweets.keys(): del users[s]
         if s in received_tweets.keys(): del users[s]
         s.close()
