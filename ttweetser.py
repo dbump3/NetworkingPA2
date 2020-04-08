@@ -53,7 +53,7 @@ clients = {}
 # Dictionary of client socket: number of hashtags (getusers, tweet, subscribe, unsubscribe)
 users = {}
 # Dictionary of hashtag: socket of subscribed users (subscribe, unsubscribe)
-sockets = {}
+sockets = {'ALL':[]}
 # Dictionary of client socket: list of all tweets from the user (gettweets)
 posted_tweets = {}
 # Dictionary of client socket: list of all tweets the user received from the server (timeline)
@@ -128,17 +128,19 @@ while True:
                   message_queues[user].put(out_tweet)
                   if user not in outputs:
                     outputs.append(user)
+              for user in sockets["ALL"]:
+                if user not in users_sent:
+                  users_sent.append(user)
+                  message_queues[user].put(out_tweet)
+                  if user not in outputs:
+                    outputs.append(user)
 
         if data[:2] == 'sb': # subscribe
           hashtag = data[3:]
           success = True
           if users[s] >= 3:
             print("operation failed: sub {} failed, already exists or exceeds 3 limitation".format(hashtag))
-          if hashtag == "ALL":
-            for ht in sockets.keys():
-              if s not in sockets[ht]:
-                sockets[ht].append(s)
-          elif hashtag in sockets.keys() and s not in sockets[hashtag]:
+          if hashtag in sockets.keys() and s not in sockets[hashtag]:
             sockets[hashtag].append(s)
           elif hashtag not in sockets.keys():
             sockets[hashtag] = [s]
@@ -165,11 +167,7 @@ while True:
         if data[:2] == 'ub': # unsubscribe
           hashtag = data[3:]
           success = True
-          if hashtag == "ALL":
-            for ht in sockets.keys():
-              if s in sockets[ht]:
-                sockets[ht].remove(s)
-          elif hashtag in sockets.keys() and s in sockets[hashtag]:
+          if hashtag in sockets.keys() and s in sockets[hashtag]:
             sockets[hashtag].remove(s)
             users[s] -= 1
           else:
