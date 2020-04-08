@@ -1,11 +1,20 @@
 import socket
 import select
 import sys
+import threading
 
 #
 # TCP Echo Client Template Source:
 # https://pymotw.com/3/socket/tcp.html
 #
+
+s_print_lock = threading.Lock()
+"""
+Thread safe printing
+"""
+def s_print(*a, **b):
+    with s_print_lock:
+        print(*a, **b)
 
 def error(message):
   print("\n" + message + "\n")
@@ -123,11 +132,32 @@ def exitProg():
   exit()
 
 
+def serverRecv():
+  while True:
+    readable, writable, exceptional = select.select([client], [], [], 1)
+
+    for s in readable:
+      if s is client:
+        message = client.recv(1024).decode('ascii')
+        # Add messages to timeline
+        pos = 0
+        while True:
+          new_pos = message.find('\ot', pos + 1)
+          if new_pos == -1:
+            stored_tweets.append(message[pos+3:])
+            s_print('\'' + message[pos+3:] + '\' added to timeline')
+            break
+          stored_tweets.append(message[pos+3:new_pos])
+          s_print('\'' + message[pos+3:new_pos] + '\' added to timeline')
+          pos = new_pos
+
+
 # Argument parsing
 if len(sys.argv) != 4:
   error("error: args should contain <ServerIP> <ServerPort> <Username>")
 
 server_ip = sys.argv[1]
+if (server_ip == 'localhost' or  server_ip == '::1'): server_ip = '127.0.0.1'
 ip = server_ip.split('.')
 if len(ip) != 4:
   error("error: server ip invalid, connection refused.")
@@ -170,6 +200,11 @@ print("username legal, connection established.")
 # Dict to store timeline
 stored_tweets = []
 
+# Start server recieving thread
+recv_thread = threading.Thread(target=serverRecv)
+recv_thread.daemon = True
+recv_thread.start()
+
 ####################
 # Main client loop #
 ####################
@@ -177,30 +212,6 @@ while True:
 
   # Wait for user commands
   user_input = input()
-
-  client.setblocking(0)
-
-  readable, writable, exceptional = select.select([client], [], [], 1)
-
-  for s in readable:
-    if s is client:
-      message = client.recv(1024).decode('ascii')
-      # Add messages to timeline
-      pos = 0
-      while True:
-          new_pos = message.find('\ot', pos + 1)
-          if new_pos == -1:
-              stored_tweets.append(message[pos+3:])
-              print('\'' + message[pos+3:] + '\' added to timeline')
-              break
-          stored_tweets.append(message[pos+3:new_pos])
-          print('\'' + message[pos+3:new_pos] + '\' added to timeline')
-          pos = new_pos
-          
-          
-
-  client.setblocking(1)
-
 
   command = user_input.split()[0]
   if command == "tweet":

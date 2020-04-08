@@ -118,10 +118,10 @@ while True:
             posted_tweets[s] += out_tweet
           else:
             posted_tweets[s] = out_tweet
-          # Send tweet to all users
+          # Send tweet to all subscribed users
           users_sent = []
           for hashtag in hashtags:
-            if hashtag in sockets.keys(): # TODO make sure this works with subscriptions to hashtags
+            if hashtag in sockets.keys():
               for user in sockets[hashtag]:
                 if user not in users_sent:
                   users_sent.append(user)
