@@ -244,8 +244,8 @@ while True:
                 sockets[hashtag] += val
               else:
                 sockets[hashtag] = val
-        if s in posted_tweets.keys(): del users[s]
-        if s in received_tweets.keys(): del users[s]
+        if s in posted_tweets.keys(): del posted_tweets[s]
+        if s in received_tweets.keys(): del received_tweets[s]
         s.close()
         # Remove message queue
         del message_queues[s]

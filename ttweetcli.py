@@ -127,16 +127,23 @@ def exitProg():
   print("bye bye")
   client.send(''.encode('ascii'))
   client.close()
+  recv_thread.join()
   exit()
 
 
 def serverRecv():
   while True:
-    readable, writable, exceptional = select.select([client], [], [], 1)
+    try:
+      readable, writable, exceptional = select.select([client], [], [], 1)
+    except:
+      break
 
     for s in readable:
       if s is client:
-        message = client.recv(1024).decode('ascii')
+        try:
+          message = client.recv(1024).decode('ascii')
+        except:
+          break
         if message[:3] == '\ot':
           # Add messages to timeline and print received tweets
           pos = 0
