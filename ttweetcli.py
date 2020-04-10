@@ -18,8 +18,6 @@ def s_print(*a, **b):
 
 def error(message):
   print("\n" + message + "\n")
-  sys.exit()
-
 
 def tweet(input):
   # Check hashtag validity
@@ -147,21 +145,35 @@ def serverRecv():
             if new_pos == -1:
               stored_tweets.append(message[pos+3:])
               colon = message.find(':')
-              print(message[pos+3:colon] + message[colon + 1:])
+              s_print(message[pos+3:colon] + message[colon + 1:])
               # s_print('\'' + message[pos+3:] + '\' added to timeline')
               break
             stored_tweets.append(message[pos+3:new_pos])
-            print(message[pos + 3:new_pos])
+            s_print(message[pos + 3:new_pos])
             # s_print('\'' + message[pos+3:new_pos] + '\' added to timeline')
+            pos = new_pos
+        # gettweets
+        elif message[:2] == 'gt':
+          tweets = message[message.find('['):message.find(']') + 1].strip('][').split(', ')
+          for i in range(len(tweets)):
+            if len(tweets[i][1:-1]) > 0:
+              print(tweets[i][1:-1])
+          pos = 0
+          while True:
+            new_pos = message.find('\ot', pos + 1)
+            if new_pos == -1:
+              print(message[pos + 3:])
+              break
+            print(message[pos + 3:new_pos])
             pos = new_pos
         # getusers
         elif message[:2] == 'gu':
           message = message[2:]
           users = message[message.find('['):message.find(']') + 1].strip('][').split(', ')
           for i in range(len(users)):
-            print(users[i][1:-1])
+            s_print(users[i][1:-1])
         else:
-          print(message)
+          s_print(message)
 
 
 # Argument parsing

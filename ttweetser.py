@@ -116,8 +116,10 @@ while True:
           # Add to posted tweets for that user
           if s in posted_tweets.keys():
             posted_tweets[s] += out_tweet
+            print(posted_tweets[s])
           else:
             posted_tweets[s] = out_tweet
+            print(posted_tweets[s])
           # Send tweet to all subscribed users
           users_sent = []
           for user in sockets["ALL"]:
@@ -212,6 +214,7 @@ while True:
               message += 'no tweets have been posted by ' + username + ' yet'
             # Send reply
             else:
+              message += 'gt'
               for val in posted_tweets[key]:
                 message += val
             
