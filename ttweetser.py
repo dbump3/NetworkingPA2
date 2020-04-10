@@ -120,15 +120,15 @@ while True:
             posted_tweets[s] = out_tweet
           # Send tweet to all subscribed users
           users_sent = []
+          for user in sockets["ALL"]:
+            if user not in users_sent:
+              users_sent.append(user)
+              message_queues[user].put(out_tweet)
+              if user not in outputs:
+                outputs.append(user)
           for hashtag in hashtags:
             if hashtag in sockets.keys():
               for user in sockets[hashtag]:
-                if user not in users_sent:
-                  users_sent.append(user)
-                  message_queues[user].put(out_tweet)
-                  if user not in outputs:
-                    outputs.append(user)
-              for user in sockets["ALL"]:
                 if user not in users_sent:
                   users_sent.append(user)
                   message_queues[user].put(out_tweet)
@@ -139,8 +139,8 @@ while True:
           hashtag = data[3:]
           success = True
           if users[s] >= 3:
-            print("operation failed: sub {} failed, already exists or exceeds 3 limitation".format(hashtag))
-          if hashtag in sockets.keys() and s not in sockets[hashtag]:
+            success = False
+          elif hashtag in sockets.keys() and s not in sockets[hashtag]:
             sockets[hashtag].append(s)
           elif hashtag not in sockets.keys():
             sockets[hashtag] = [s]
@@ -149,11 +149,11 @@ while True:
 
           if success:
             users[s] += 1
-            message_queues[s].put("os")
+            message_queues[s].put("operation success")
             if s not in outputs:
               outputs.append(s)
           else:
-            message_queues[s].put("of")
+            message_queues[s].put("operation failed: sub #{} failed, already exists or exceeds 3 limitation".format(hashtag))
             if s not in outputs:
               outputs.append(s)
 
@@ -167,19 +167,23 @@ while True:
         if data[:2] == 'ub': # unsubscribe
           hashtag = data[3:]
           success = True
-          if hashtag in sockets.keys() and s in sockets[hashtag]:
+          if hashtag == "ALL":
+            for ht in sockets.keys():
+              if s in sockets[ht]:
+                sockets[ht].remove(s)
+          elif hashtag in sockets.keys() and s in sockets[hashtag]:
             sockets[hashtag].remove(s)
-            users[s] -= 1
           else:
             success = False
 
           if success:
-            users[s] += 1
-            message_queues[s].put("os")
+            users[s] -= 1
+            message_queues[s].put("operation success")
             if s not in outputs:
               outputs.append(s)
           else:
-            message_queues[s].put("of")
+            message_queues[s].put("operation failed: unsub #{} failed".format(hashtag))
+
             if s not in outputs:
               outputs.append(s)
 
@@ -191,7 +195,7 @@ while True:
             print("#{} has subscribers: {}".format(ht, un))
 
         if data == 'gu': # getusers
-          message_queues[s].put(str(clients.values()))
+          message_queues[s].put('gu' + str(clients.values()))
           if s not in outputs:
             outputs.append(s)
 
@@ -202,10 +206,10 @@ while True:
           try:
             key = next(key for key, val in clients.items() if val == username)
           except:
-            message += 'no'
-          if not message == 'no':
+            message += 'no user ' + username + ' in the system'
+          if not message == 'no user ' + username + ' in the system':
             if key not in posted_tweets.keys():
-              message += 'nt'
+              message += 'no tweets have been posted by ' + username + ' yet'
             # Send reply
             else:
               for val in posted_tweets[key]:

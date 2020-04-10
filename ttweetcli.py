@@ -50,13 +50,13 @@ def subscribe(hashtag):
   # Send data
   print('sending ' + message)
   client.send(message.encode('ascii'))
-  # Look for the response
-  response = client.recv(1024).decode('ascii')
-  if not response:
-    client.close()
-  print('recieved ' + response)
-  if response == "os":
-    print("operation success")
+  # # Look for the response
+  # response = client.recv(1024).decode('ascii')
+  # if not response:
+  #   client.close()
+  # print('recieved ' + response)
+  # if response == "os":
+  #   print("operation success")
 
 
 def unsubscribe(hashtag):
@@ -65,12 +65,12 @@ def unsubscribe(hashtag):
   print('sending ' + message)
   client.send(message.encode('ascii'))
   # Look for the response
-  response = client.recv(1024).decode('ascii')
-  if not response:
-    client.close()
-  print('recieved ' + response)
-  if response == "os":
-    print("operation success")
+  # response = client.recv(1024).decode('ascii')
+  # if not response:
+  #   client.close()
+  # print('recieved ' + response)
+  # if response == "os":
+  #   print("operation success")
 
 
 def timeline(tweets):
@@ -84,14 +84,14 @@ def getusers():
   print('sending ' + message)
   client.send(message.encode('ascii'))
 
-  # Look for the response
-  data = client.recv(1024).decode('ascii')
-  if not data:
-    client.close()
-  print('recieved ' + data)
-  users = data[data.find('['):data.find(']')+1].strip('][').split(', ')
-  for i in range(len(users)):
-    print(users[i][1:-1])
+  # # Look for the response
+  # data = client.recv(1024).decode('ascii')
+  # if not data:
+  #   client.close()
+  # print('recieved ' + data)
+  # users = data[data.find('['):data.find(']')+1].strip('][').split(', ')
+  # for i in range(len(users)):
+  #   print(users[i][1:-1])
 
 
 def gettweets(input):
@@ -101,28 +101,28 @@ def gettweets(input):
   client.send(message.encode('ascii'))
 
   # Look for the response
-  data = client.recv(1024).decode('ascii')
-  if not data:
-    client.close()
-  print('recieved ' + data)
-
-  tweets = data[data.find('['):data.find(']')+1].strip('][').split(', ')
-  for i in range(len(tweets)):
-    print(tweets[i][1:-1])
-
-  if data == 'no':
-    print('no user ' + input + ' in the system')
-  elif data == 'nt':
-      print('no tweets have been posted by ' + input + ' yet')    
-  else:
-    pos = 0
-    while True:
-      new_pos = data.find('\ot', pos + 1)
-      if new_pos == -1:
-        print(data[pos+3:])
-        break
-      print(data[pos+3:new_pos])
-      pos = new_pos
+  # data = client.recv(1024).decode('ascii')
+  # if not data:
+  #   client.close()
+  # print('recieved ' + data)
+  #
+  # tweets = data[data.find('['):data.find(']')+1].strip('][').split(', ')
+  # for i in range(len(tweets)):
+  #   print(tweets[i][1:-1])
+  #
+  # if data == 'no':
+  #   print('no user ' + input + ' in the system')
+  # elif data == 'nt':
+  #     print('no tweets have been posted by ' + input + ' yet')
+  # else:
+  #   pos = 0
+  #   while True:
+  #     new_pos = data.find('\ot', pos + 1)
+  #     if new_pos == -1:
+  #       print(data[pos+3:])
+  #       break
+  #     print(data[pos+3:new_pos])
+  #     pos = new_pos
 
 
 def exitProg():
@@ -139,17 +139,29 @@ def serverRecv():
     for s in readable:
       if s is client:
         message = client.recv(1024).decode('ascii')
-        # Add messages to timeline
-        pos = 0
-        while True:
-          new_pos = message.find('\ot', pos + 1)
-          if new_pos == -1:
-            stored_tweets.append(message[pos+3:])
-            s_print('\'' + message[pos+3:] + '\' added to timeline')
-            break
-          stored_tweets.append(message[pos+3:new_pos])
-          s_print('\'' + message[pos+3:new_pos] + '\' added to timeline')
-          pos = new_pos
+        if message[:3] == '\ot':
+          # Add messages to timeline and print received tweets
+          pos = 0
+          while True:
+            new_pos = message.find('\ot', pos + 1)
+            if new_pos == -1:
+              stored_tweets.append(message[pos+3:])
+              colon = message.find(':')
+              print(message[pos+3:colon] + message[colon + 1:])
+              # s_print('\'' + message[pos+3:] + '\' added to timeline')
+              break
+            stored_tweets.append(message[pos+3:new_pos])
+            print(message[pos + 3:new_pos])
+            # s_print('\'' + message[pos+3:new_pos] + '\' added to timeline')
+            pos = new_pos
+        # getusers
+        elif message[:2] == 'gu':
+          message = message[2:]
+          users = message[message.find('['):message.find(']') + 1].strip('][').split(', ')
+          for i in range(len(users)):
+            print(users[i][1:-1])
+        else:
+          print(message)
 
 
 # Argument parsing
@@ -200,7 +212,7 @@ print("username legal, connection established.")
 # Dict to store timeline
 stored_tweets = []
 
-# Start server recieving thread
+# Start server receiving thread
 recv_thread = threading.Thread(target=serverRecv)
 recv_thread.daemon = True
 recv_thread.start()
