@@ -19,6 +19,10 @@ def s_print(*a, **b):
 def error(message):
   print("\n" + message + "\n")
 
+def error_exit(message):
+  print("\n" + message + "\n")
+  sys.exit()
+
 def tweet(input):
   # Check hashtag validity
   hashtag_start = input.find("#")
@@ -39,7 +43,7 @@ def tweet(input):
 
   message = 'tw' + str(hashtags) + server_message
 
-  print('sending ' + message)
+  # print('sending ' + message)
   client.send(message.encode('ascii'))
 
 
@@ -79,7 +83,7 @@ def timeline(tweets):
 def getusers():
   message = 'gu'
   # Send data
-  print('sending ' + message)
+  # print('sending ' + message)
   client.send(message.encode('ascii'))
 
   # # Look for the response
@@ -95,7 +99,7 @@ def getusers():
 def gettweets(input):
   message = 'gt' + input
   # Send data
-  print('sending ' + message)
+  # print('sending ' + message)
   client.send(message.encode('ascii'))
 
   # Look for the response
@@ -142,6 +146,9 @@ def serverRecv():
       if s is client:
         try:
           message = client.recv(1024).decode('ascii')
+          if message == '':
+            s_print("Error: Server offline. Exiting.")
+            return
         except:
           break
         if message[:3] == '\ot':
@@ -152,10 +159,12 @@ def serverRecv():
             if new_pos == -1:
               stored_tweets.append(message[pos+3:])
               colon = message.find(':')
+              # print received tweet
               s_print(message[pos+3:colon] + message[colon + 1:])
               # s_print('\'' + message[pos+3:] + '\' added to timeline')
               break
             stored_tweets.append(message[pos+3:new_pos])
+            # print received tweet
             s_print(message[pos + 3:new_pos])
             # s_print('\'' + message[pos+3:new_pos] + '\' added to timeline')
             pos = new_pos
@@ -185,26 +194,26 @@ def serverRecv():
 
 # Argument parsing
 if len(sys.argv) != 4:
-  error("error: args should contain <ServerIP> <ServerPort> <Username>")
+  error_exit("error: args should contain <ServerIP>   <ServerPort>   <Username>")
 
 server_ip = sys.argv[1]
 if (server_ip == 'localhost' or  server_ip == '::1'): server_ip = '127.0.0.1'
 ip = server_ip.split('.')
 if len(ip) != 4:
-  error("error: server ip invalid, connection refused.")
+  error_exit("error: server ip invalid, connection refused.")
 for num in ip:
   num = int(num)
   if num < 0 or num > 255:
-    error("error: server ip invalid, connection refused.")
+    error_exit("error: server ip invalid, connection refused.")
 
 try: server_port = int(sys.argv[2])
-except: error("error: server port invalid, connection refused.")
+except: error_exit("error: server port invalid, connection refused.")
 if not 1024 <= server_port <= 65535:
-  error("error: server port invalid, connection refused.")
+  error_exit("error: server port invalid, connection refused.")
 
 username = sys.argv[3]
 if not username.isalnum():
-  error("error: username has wrong format, connection refused.")
+  error_exit("error: username has wrong format, connection refused.")
 
 
 # Create a TCP/IP socket
@@ -214,7 +223,7 @@ client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_address = (server_ip, server_port)
 #print('connecting to {} port {}'.format(*server_address))
 try: client.connect(server_address)
-except: error("connection error, please check your server: Connection refused")
+except: error_exit("connection error, please check your server: Connection refused")
 
 # Send username to ensure not taken
 message = 'su' + username
@@ -223,7 +232,7 @@ client.send(message.encode('ascii'))
 # If username taken, send close connection command
 if not client.recv(1024).decode('ascii') == '1':
   client.close()
-  error("error: username has wrong format, connection refused.")
+  error_exit("error: username has wrong format, connection refused.")
 
 # Connection successfully established
 print("username legal, connection established.")
