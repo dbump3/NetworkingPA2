@@ -17,20 +17,23 @@ def s_print(*a, **b):
         print(*a, **b)
 
 def error(message):
-  print("\n" + message + "\n")
+  print(message)
 
 def error_exit(message):
-  print("\n" + message + "\n")
+  print(message)
   sys.exit()
 
 def tweet(input):
   # Check hashtag validity
-  hashtag_start = input.find("#")
+  hashtag_start = input.find("#", input.rfind("\""))
   hashtags = input[hashtag_start:].split("#")[1:]
-  if len(hashtags) > 5: error("hashtag illegal format, connection refused.")
+  if len(hashtags) > 5:
+    error("hashtag illegal format, connection refused.")
+    return
   for hashtag in hashtags:
     if not hashtag.isalnum() or hashtag == "#" or hashtag == "ALL":
       error("hashtag illegal format, connection refused.")
+      return
 
   # Check message validity
   message_start = input.find("\"")
@@ -38,8 +41,10 @@ def tweet(input):
   server_message = input[message_start + 1:message_end]
   if (server_message is None or len(server_message) == 0):
     error("message format illegal.")
+    return
   elif (len(server_message) > 150):
     error("message length illegal, connection refused.")
+    return
 
   message = 'tw' + str(hashtags) + server_message
 
@@ -50,7 +55,7 @@ def tweet(input):
 def subscribe(hashtag):
   message = 'sb' + str(hashtag)
   # Send data
-  print('sending ' + message)
+  # print('sending ' + message)
   client.send(message.encode('ascii'))
   # # Look for the response
   # response = client.recv(1024).decode('ascii')
@@ -64,7 +69,7 @@ def subscribe(hashtag):
 def unsubscribe(hashtag):
   message = 'ub' + str(hashtag)
   # Send data
-  print('sending ' + message)
+  # print('sending ' + message)
   client.send(message.encode('ascii'))
   # Look for the response
   # response = client.recv(1024).decode('ascii')
