@@ -140,6 +140,20 @@ def exitProg():
   exit()
 
 
+def recvall(sock):
+  # Helper function to recv n bytes or return None if EOF is hit
+  data = bytearray()
+  # while len(data) < n:
+  #   packet = sock.recv(n - len(data))
+  while True:
+    packet = sock.recv(1024)
+    if not packet:
+      return None
+    data.extend(packet)
+    if bytes(' \end/', encoding='ascii') in data:
+      return data[:-6]
+
+
 def serverRecv():
   while True:
     try:
@@ -150,7 +164,7 @@ def serverRecv():
     for s in readable:
       if s is client:
         try:
-          message = client.recv(1024).decode('ascii')
+          message = recvall(client).decode('ascii')
           if message == '':
             s_print("Error: Server offline. Exiting.")
             return
@@ -175,18 +189,24 @@ def serverRecv():
             pos = new_pos
         # gettweets
         elif message[:2] == 'gt':
-          tweets = message[message.find('['):message.find(']') + 1].strip('][').split(', ')
-          for i in range(len(tweets)):
-            if len(tweets[i][1:-1]) > 0:
-              print(tweets[i][1:-1])
-          pos = 0
-          while True:
-            new_pos = message.find('\ot', pos + 1)
-            if new_pos == -1:
-              print(message[pos + 3:])
-              break
-            print(message[pos + 3:new_pos])
-            pos = new_pos
+          message = message[2:]
+          tweets = message.split('\ot')
+          for t in tweets:
+            if len(t) > 0:
+              s_print(t)
+          # pos = 0
+          # while True:
+          #   new_pos = message.find('\ot', pos + 1)
+          #   if new_pos == -1:
+          #     if len(message[pos + 3:]) > 0:
+          #       # print("message 1: ")
+          #       print(message[pos + 3:])
+          #     break
+          #   else:
+          #     if len(message[pos + 3:new_pos]) > 0:
+          #       # print("message 2: ")
+          #       print(message[pos + 3:new_pos])
+          #   pos = new_pos
         # getusers
         elif message[:2] == 'gu':
           message = message[2:]
@@ -235,7 +255,7 @@ message = 'su' + username
 # print('sending ' + message)
 client.send(message.encode('ascii'))
 # If username taken, send close connection command
-if not client.recv(1024).decode('ascii') == '1':
+if not recvall(client).decode('ascii') == '1':
   client.close()
   error_exit("error: username has wrong format, connection refused.")
 

@@ -254,6 +254,7 @@ while True:
   for s in writable:
     try:
       next_msg = message_queues[s].get_nowait()
+      next_msg += ' \end/'
     except queue.Empty:
       # No messages waiting so stop checking for writability.
       print('output queue for ' + str(s.getpeername()) + ' is empty')
