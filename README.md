@@ -53,6 +53,8 @@ Known Bugs/Limitations
 - The server can only manage up to 5 concurrent client connections
 - Each client can only subscribe to 3 hashtags
 - Requests are processed one at a time
+- String '\ot' is used as a deliminator to identify separate tweets in gettweets() ad timeline()
+- String ' \end/' is appended to each message the server sends to a client to acknowledge that the complete message has been recieved
 
 Dependent Packages
 -----------------------------------
