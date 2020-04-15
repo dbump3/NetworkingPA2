@@ -231,21 +231,15 @@ while True:
           outputs.remove(s)
         inputs.remove(s)
         del clients[s]
-        if s in users.keys(): del users[s]
+        if s in users.keys():
+          del users[s]
         for hashtag in sockets.keys():
           if s in sockets[hashtag]:
-            new_vals = []
-            for val in sockets[hashtag]:
-              if not val == s:
-                new_vals.append(val)
-            del sockets[hashtag]
-            for val in new_vals:
-              if hashtag in sockets.keys():
-                sockets[hashtag] += val
-              else:
-                sockets[hashtag] = val
-        if s in posted_tweets.keys(): del posted_tweets[s]
-        if s in received_tweets.keys(): del received_tweets[s]
+            sockets[hashtag].remove(s)
+        if s in posted_tweets.keys():
+          del posted_tweets[s]
+        if s in received_tweets.keys():
+          del received_tweets[s]
         s.close()
         # Remove message queue
         del message_queues[s]

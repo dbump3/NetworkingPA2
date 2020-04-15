@@ -48,36 +48,17 @@ def tweet(input):
 
   message = 'tw' + str(hashtags) + server_message
 
-  # print('sending ' + message)
   client.send(message.encode('ascii'))
 
 
 def subscribe(hashtag):
   message = 'sb' + str(hashtag)
-  # Send data
-  # print('sending ' + message)
   client.send(message.encode('ascii'))
-  # # Look for the response
-  # response = client.recv(1024).decode('ascii')
-  # if not response:
-  #   client.close()
-  # print('recieved ' + response)
-  # if response == "os":
-  #   print("operation success")
 
 
 def unsubscribe(hashtag):
   message = 'ub' + str(hashtag)
-  # Send data
-  # print('sending ' + message)
   client.send(message.encode('ascii'))
-  # Look for the response
-  # response = client.recv(1024).decode('ascii')
-  # if not response:
-  #   client.close()
-  # print('recieved ' + response)
-  # if response == "os":
-  #   print("operation success")
 
 
 def timeline(tweets):
@@ -87,49 +68,12 @@ def timeline(tweets):
 
 def getusers():
   message = 'gu'
-  # Send data
-  # print('sending ' + message)
   client.send(message.encode('ascii'))
-
-  # # Look for the response
-  # data = client.recv(1024).decode('ascii')
-  # if not data:
-  #   client.close()
-  # print('recieved ' + data)
-  # users = data[data.find('['):data.find(']')+1].strip('][').split(', ')
-  # for i in range(len(users)):
-  #   print(users[i][1:-1])
 
 
 def gettweets(input):
   message = 'gt' + input
-  # Send data
-  # print('sending ' + message)
   client.send(message.encode('ascii'))
-
-  # Look for the response
-  # data = client.recv(1024).decode('ascii')
-  # if not data:
-  #   client.close()
-  # print('recieved ' + data)
-  #
-  # tweets = data[data.find('['):data.find(']')+1].strip('][').split(', ')
-  # for i in range(len(tweets)):
-  #   print(tweets[i][1:-1])
-  #
-  # if data == 'no':
-  #   print('no user ' + input + ' in the system')
-  # elif data == 'nt':
-  #     print('no tweets have been posted by ' + input + ' yet')
-  # else:
-  #   pos = 0
-  #   while True:
-  #     new_pos = data.find('\ot', pos + 1)
-  #     if new_pos == -1:
-  #       print(data[pos+3:])
-  #       break
-  #     print(data[pos+3:new_pos])
-  #     pos = new_pos
 
 
 def exitProg():
@@ -141,14 +85,13 @@ def exitProg():
 
 
 def recvall(sock):
-  # Helper function to recv n bytes or return None if EOF is hit
+  # Helper function to recv bytes or return None if EOF is hit
   data = bytearray()
-  # while len(data) < n:
-  #   packet = sock.recv(n - len(data))
   while True:
     packet = sock.recv(1024)
     if not packet:
       return None
+    # Append message
     data.extend(packet)
     if bytes(' \end/', encoding='ascii') in data:
       return data[:-6]
@@ -180,12 +123,10 @@ def serverRecv():
               colon = message.find(':')
               # print received tweet
               s_print(message[pos+3:colon] + message[colon + 1:])
-              # s_print('\'' + message[pos+3:] + '\' added to timeline')
               break
             stored_tweets.append(message[pos+3:new_pos])
             # print received tweet
             s_print(message[pos + 3:new_pos])
-            # s_print('\'' + message[pos+3:new_pos] + '\' added to timeline')
             pos = new_pos
         # gettweets
         elif message[:2] == 'gt':
@@ -194,19 +135,6 @@ def serverRecv():
           for t in tweets:
             if len(t) > 0:
               s_print(t)
-          # pos = 0
-          # while True:
-          #   new_pos = message.find('\ot', pos + 1)
-          #   if new_pos == -1:
-          #     if len(message[pos + 3:]) > 0:
-          #       # print("message 1: ")
-          #       print(message[pos + 3:])
-          #     break
-          #   else:
-          #     if len(message[pos + 3:new_pos]) > 0:
-          #       # print("message 2: ")
-          #       print(message[pos + 3:new_pos])
-          #   pos = new_pos
         # getusers
         elif message[:2] == 'gu':
           message = message[2:]
@@ -252,12 +180,14 @@ except: error_exit("connection error, please check your server: Connection refus
 
 # Send username to ensure not taken
 message = 'su' + username
-# print('sending ' + message)
 client.send(message.encode('ascii'))
 # If username taken, send close connection command
-if not recvall(client).decode('ascii') == '1':
-  client.close()
-  error_exit("error: username has wrong format, connection refused.")
+try:
+  if not recvall(client).decode('ascii') == '1':
+    client.close()
+    error_exit("error: username has wrong format, connection refused.")
+except AttributeError:
+  pass
 
 # Connection successfully established
 print("username legal, connection established.")
@@ -276,7 +206,10 @@ recv_thread.start()
 while True:
 
   # Wait for user commands
-  user_input = input()
+  try:
+    user_input = input()
+  except EOFError:
+    error_exit("error: EOFError")
 
   command = user_input.split()[0]
   if command == "tweet":
